@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Projet SI CIT "MétéoBriq'" Noa Victor George Luca</title>
   
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  
   <style>
     body { 
       font-family: 'Segoe UI', Arial, sans-serif; 
@@ -16,25 +18,10 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      min-height: 90vh;
     }
     
-    h1 { 
-      color: #1a73e8; 
-      margin-bottom: 5px; 
-      font-size: 1.8em;
-    }
-    
-    h2 { 
-      font-size: 0.9em; 
-      color: #666; 
-      margin-top: 0; 
-      margin-bottom: 25px; 
-      font-weight: normal;
-      line-height: 1.4;
-      padding: 0 10px;
-    }
+    h1 { color: #1a73e8; margin-bottom: 5px; font-size: 1.8em; margin-top: 10px; }
+    h2 { font-size: 0.9em; color: #666; margin-top: 0; margin-bottom: 20px; font-weight: normal; line-height: 1.4; padding: 0 10px; }
     
     .card { 
       background: white; 
@@ -43,54 +30,98 @@
       box-shadow: 0px 4px 20px rgba(0,0,0,0.08); 
       text-align: left; 
       width: 100%;
-      max-width: 350px; /* Parfait pour la largeur d'un smartphone */
+      max-width: 350px; 
       box-sizing: border-box;
+      margin-bottom: 20px;
     }
     
     p { 
-      margin: 18px 0; 
+      margin: 15px 0; 
       font-size: 1.1em; 
       display: flex;
-      justify-content: space-between; /* Aligne l'émoji/texte à gauche et la valeur à droite */
+      justify-content: space-between; 
       align-items: center;
     }
     
-    hr { 
-      border: 0; 
-      height: 1px; 
-      background: #eee; 
-      margin: 20px 0; 
-    }
+    hr { border: 0; height: 1px; background: #eee; margin: 15px 0; }
     
     .time { 
       font-size: 0.8em; 
       color: #999; 
       text-align: center; 
-      margin-top: 20px; 
-      word-break: break-word; /* Évite que le texte dépasse sur petit écran */
+      margin-top: 15px; 
+      word-break: break-word; 
     }
     
     .valeur { 
       font-weight: bold; 
       color: #111; 
-      font-family: monospace; /* Plus propre pour l'alignement des chiffres */
+      font-family: monospace; 
       font-size: 1.1em;
     }
+
+    .status-alimentation {
+      font-weight: bold;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.9em;
+    }
+    .secteur-on { background-color: #e3f2fd; color: #0d47a1; }
+    .bat-on { background-color: #e8f5e9; color: #1b5e20; }
+
+    #map-container {
+      background: white;
+      padding: 15px;
+      border-radius: 15px;
+      box-shadow: 0px 4px 20px rgba(0,0,0,0.08);
+      width: 100%;
+      max-width: 350px;
+      box-sizing: border-box;
+      text-align: left;
+    }
+    #map-container h3 { margin: 0 0 10px 0; font-size: 1em; color: #1a73e8; }
+    #map { height: 180px; width: 100%; border-radius: 10px; }
+    .geo-txt { font-size: 0.85em; color: #555; margin-top: 10px; font-family: monospace; line-height: 1.4; }
   </style>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
     const baseUrl = "https://aeroxnoameteo.periodicbrake.fr/api/pull/";
-    const capteurs = ['temps', 'humidity', 'pressure', 'dust', 'quality'];
+    const capteurs = ['temps', 'humidity', 'pressure', 'dust', 'quality', 'battery'];
+    let map, marker;
+
+    function initMap() {
+      map = L.map('map').setView([46.2276, 2.2137], 5);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+      marker = L.marker([46.2276, 2.2137]).addTo(map).bindPopup("MétéoBriq'").openPopup();
+    }
+
+    async function localiserBrique() {
+      try {
+        const response = await fetch("https://ip-api.com/json/aeroxnoameteo.periodicbrake.fr");
+        if (response.ok) {
+          const geo = await response.json();
+          if (geo.status === "success") {
+            document.getElementById('ville').innerText = geo.city + " (" + geo.countryCode + ")";
+            document.getElementById('lat').innerText = geo.lat.toFixed(4);
+            document.getElementById('lon').innerText = geo.lon.toFixed(4);
+            
+            const pos = [geo.lat, geo.lon];
+            map.setView(pos, 12);
+            marker.setLatLng(pos);
+            marker.setPopupContent("<b>MétéoBriq'</b><br>Lieu : " + geo.city).openPopup();
+          }
+        }
+      } catch (e) { console.error(e); }
+    }
 
     async function recupererCapteur(nom) {
       try {
         const response = await fetch(baseUrl + nom);
         if (!response.ok) return null;
         return await response.json();
-      } catch (e) {
-        console.error("Erreur sur " + nom, e);
-        return null;
-      }
+      } catch (e) { return null; }
     }
 
     async function chargerToutesLesDonnees() {
@@ -99,28 +130,40 @@
       for (const capteur of capteurs) {
         const data = await recupererCapteur(capteur);
         if (data && data.value !== undefined) {
-          // On garde la date de mise à jour du dernier capteur lu
           if (data.updated_at) derniereMaj = data.updated_at;
 
-          // On met à jour le bon élément dans la page HTML
           if (capteur === 'temps') document.getElementById('temp').innerText = data.value.toFixed(1) + " °C";
           if (capteur === 'humidity') document.getElementById('humi').innerText = data.value.toFixed(1) + " %";
           if (capteur === 'pressure') document.getElementById('pres').innerText = data.value.toFixed(0) + " hPa";
           if (capteur === 'dust') document.getElementById('dust').innerText = data.value.toFixed(1) + " pcs";
           if (capteur === 'quality') document.getElementById('co2').innerText = data.value.toFixed(0) + " ppm";
+          
+          if (capteur === 'battery') {
+            const el = document.getElementById('pwr-status');
+            if (data.value === -1) {
+              el.innerText = "🔌 Secteur (USB)";
+              el.className = "status-alimentation secteur-on";
+            } else {
+              el.innerText = "🔋 Pile : " + data.value.toFixed(0) + "%";
+              el.className = "status-alimentation bat-on";
+            }
+          }
         }
       }
 
-      // Affichage de l'heure de la dernière synchronisation
       if (derniereMaj) {
         const date = new Date(derniereMaj);
         document.getElementById('time').innerText = "Dernière mise à jour : " + date.toLocaleTimeString('fr-FR');
       }
     }
 
-    // Relancer la récupération toutes les 5 secondes
-    setInterval(chargerToutesLesDonnees, 5000);
-    window.onload = chargerToutesLesDonnees;
+    window.onload = function() {
+      initMap();
+      localiserBrique();
+      chargerToutesLesDonnees();
+      setInterval(chargerToutesLesDonnees, 5000);
+      setInterval(localiserBrique, 60000);
+    };
   </script>
 </head>
 <body>
@@ -129,13 +172,25 @@
   <h2>Noa Meyer, Luca Sforza, Victor Lefèvre, George Martinez</h2>
 
   <div class="card">
+    <p><span>⚡ Source :</span> <span id="pwr-status" class="status-alimentation secteur-on">Analyse...</span></p>
+    <hr>
     <p><span>🌡️ Température :</span> <span id="temp" class="valeur">--</span></p>
     <p><span>💧 Humidité :</span> <span id="humi" class="valeur">--</span></p>
     <p><span>🌪️ Pression :</span> <span id="pres" class="valeur">--</span></p>
     <hr>
     <p><span>💨 Qualité de l'air (CO2) :</span> <span id="co2" class="valeur">--</span></p>
     <p><span>🌫️ Poussière :</span> <span id="dust" class="valeur">--</span></p>
-    <div class="time" id="time">Connexion a l'API et a l'Arduino R4 Wifi...</div>
+    <div class="time" id="time">Connexion aux capteurs...</div>
+  </div>
+
+  <div id="map-container">
+    <h3>📍 Localisation de la brique</h3>
+    <div id="map"></div>
+    <div class="geo-txt">
+      <div><b>Ville :</b> <span id="ville">Recherche...</span></div>
+      <div><b>Latitude :</b> <span id="lat">--</span></div>
+      <div><b>Longitude :</b> <span id="lon">--</span></div>
+    </div>
   </div>
 
 </body>
