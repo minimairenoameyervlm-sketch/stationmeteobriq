@@ -2,17 +2,82 @@
 <html>
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Projet SI CIT "MétéoBriq'" Noa Victor George Luca</title>
+  
   <style>
-    body { font-family: 'Segoe UI', Arial, sans-serif; text-align: center; background-color: #f0f2f5; margin-top: 50px; color: #333; }
-    .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0px 4px 20px rgba(0,0,0,0.08); display: inline-block; text-align: left; min-width: 320px; }
-    h1 { color: #1a73e8; margin-bottom: 5px; }
-    h2 { font-size: 0.9em; color: #666; margin-top: 0; margin-bottom: 25px; font-weight: normal; }
-    p { margin: 15px 0; font-size: 1.1em; }
-    hr { border: 0; height: 1px; background: #eee; margin: 20px 0; }
-    .time { font-size: 0.8em; color: #999; text-align: center; margin-top: 20px; }
-    .valeur { font-weight: bold; color: #111; float: right; }
+    body { 
+      font-family: 'Segoe UI', Arial, sans-serif; 
+      text-align: center; 
+      background-color: #f0f2f5; 
+      margin: 0;
+      padding: 20px;
+      color: #333; 
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 90vh;
+    }
+    
+    h1 { 
+      color: #1a73e8; 
+      margin-bottom: 5px; 
+      font-size: 1.8em;
+    }
+    
+    h2 { 
+      font-size: 0.9em; 
+      color: #666; 
+      margin-top: 0; 
+      margin-bottom: 25px; 
+      font-weight: normal;
+      line-height: 1.4;
+      padding: 0 10px;
+    }
+    
+    .card { 
+      background: white; 
+      padding: 25px; 
+      border-radius: 15px; 
+      box-shadow: 0px 4px 20px rgba(0,0,0,0.08); 
+      text-align: left; 
+      width: 100%;
+      max-width: 350px; /* Parfait pour la largeur d'un smartphone */
+      box-sizing: border-box;
+    }
+    
+    p { 
+      margin: 18px 0; 
+      font-size: 1.1em; 
+      display: flex;
+      justify-content: space-between; /* Aligne l'émoji/texte à gauche et la valeur à droite */
+      align-items: center;
+    }
+    
+    hr { 
+      border: 0; 
+      height: 1px; 
+      background: #eee; 
+      margin: 20px 0; 
+    }
+    
+    .time { 
+      font-size: 0.8em; 
+      color: #999; 
+      text-align: center; 
+      margin-top: 20px; 
+      word-break: break-word; /* Évite que le texte dépasse sur petit écran */
+    }
+    
+    .valeur { 
+      font-weight: bold; 
+      color: #111; 
+      font-family: monospace; /* Plus propre pour l'alignement des chiffres */
+      font-size: 1.1em;
+    }
   </style>
+
   <script>
     const baseUrl = "https://aeroxnoameteo.periodicbrake.fr/api/pull/";
     const capteurs = ['temps', 'humidity', 'pressure', 'dust', 'quality'];
@@ -64,13 +129,13 @@
   <h2>Noa Meyer, Luca Sforza, Victor Lefèvre, George Martinez</h2>
 
   <div class="card">
-    <p>🌡️ Température : <span id="temp" class="valeur">--</span></p>
-    <p>💧 Humidité : <span id="humi" class="valeur">--</span></p>
-    <p>🌪️ Pression : <span id="pres" class="valeur">--</span></p>
+    <p><span>🌡️ Température :</span> <span id="temp" class="valeur">--</span></p>
+    <p><span>💧 Humidité :</span> <span id="humi" class="valeur">--</span></p>
+    <p><span>🌪️ Pression :</span> <span id="pres" class="valeur">--</span></p>
     <hr>
-    <p>💨 Qualité de l'air (CO2) : <span id="co2" class="valeur">--</span></p>
-    <p>🌫️ Poussière : <span id="dust" class="valeur">--</span></p>
-    <div class="time" id="time">Connexion a l'API et a l'Arduino R4 Wifi</div>
+    <p><span>💨 Qualité de l'air (CO2) :</span> <span id="co2" class="valeur">--</span></p>
+    <p><span>🌫️ Poussière :</span> <span id="dust" class="valeur">--</span></p>
+    <div class="time" id="time">Connexion a l'API et a l'Arduino R4 Wifi...</div>
   </div>
 
 </body>
