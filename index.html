@@ -1,0 +1,77 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Ma Station Météo Mondiale</title>
+  <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; text-align: center; background-color: #f0f2f5; margin-top: 50px; color: #333; }
+    .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0px 4px 20px rgba(0,0,0,0.08); display: inline-block; text-align: left; min-width: 320px; }
+    h1 { color: #1a73e8; margin-bottom: 5px; }
+    h2 { font-size: 0.9em; color: #666; margin-top: 0; margin-bottom: 25px; font-weight: normal; }
+    p { margin: 15px 0; font-size: 1.1em; }
+    hr { border: 0; height: 1px; background: #eee; margin: 20px 0; }
+    .time { font-size: 0.8em; color: #999; text-align: center; margin-top: 20px; }
+    .valeur { font-weight: bold; color: #111; float: right; }
+  </style>
+  <script>
+    const baseUrl = "https://aeroxnoameteo.periodicbrake.fr/api/pull/";
+    const capteurs = ['temps', 'humidity', 'pressure', 'dust', 'quality'];
+
+    async function recupererCapteur(nom) {
+      try {
+        const response = await fetch(baseUrl + nom);
+        if (!response.ok) return null;
+        return await response.json();
+      } catch (e) {
+        console.error("Erreur sur " + nom, e);
+        return null;
+      }
+    }
+
+    async function chargerToutesLesDonnees() {
+      let derniereMaj = "";
+
+      for (const capteur of capteurs) {
+        const data = await recupererCapteur(capteur);
+        if (data && data.value !== undefined) {
+          // On garde la date de mise à jour du dernier capteur lu
+          if (data.updated_at) derniereMaj = data.updated_at;
+
+          // On met à jour le bon élément dans la page HTML
+          if (capteur === 'temps') document.getElementById('temp').innerText = data.value.toFixed(1) + " °C";
+          if (capteur === 'humidity') document.getElementById('humi').innerText = data.value.toFixed(1) + " %";
+          if (capteur === 'pressure') document.getElementById('pres').innerText = data.value.toFixed(0) + " hPa";
+          if (capteur === 'dust') document.getElementById('dust').innerText = data.value.toFixed(1) + " pcs";
+          if (capteur === 'quality') document.getElementById('co2').innerText = data.value.toFixed(0) + " ppm";
+        }
+      }
+
+      // Affichage de l'heure de la dernière synchronisation
+      if (derniereMaj) {
+        const date = new Date(derniereMaj);
+        document.getElementById('time').innerText = "Dernière mise à jour : " + date.toLocaleTimeString('fr-FR');
+      }
+    }
+
+    // Relancer la récupération toutes les 5 secondes
+    setInterval(chargerToutesLesDonnees, 5000);
+    window.onload = chargerToutesLesDonnees;
+  </script>
+</head>
+<body>
+
+  <h1>🌍 Station Météo & Air</h1>
+  <h2>Hébergé sur Vercel • API par PeriodicBrake</h2>
+
+  <div class="card">
+    <p>🌡️ Température : <span id="temp" class="valeur">--</span></p>
+    <p>💧 Humidité : <span id="humi" class="valeur">--</span></p>
+    <p>🌪️ Pression : <span id="pres" class="valeur">--</span></p>
+    <hr>
+    <p>💨 Qualité de l'air (CO2) : <span id="co2" class="valeur">--</span></p>
+    <p>🌫️ Poussière : <span id="dust" class="valeur">--</span></p>
+    <div class="time" id="time">Connexion à l'API de ton pote...</div>
+  </div>
+
+</body>
+</html>
