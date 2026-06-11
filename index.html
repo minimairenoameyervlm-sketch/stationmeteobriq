@@ -4,83 +4,27 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Projet SI CIT "MétéoBriq'" Noa Victor George Luca</title>
-
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌤️</text></svg>">
   
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌤️</text></svg>">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   
   <style>
-    body { 
-      font-family: 'Segoe UI', Arial, sans-serif; 
-      text-align: center; 
-      background-color: #f0f2f5; 
-      margin: 0;
-      padding: 20px;
-      color: #333; 
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    
+    body { font-family: 'Segoe UI', Arial, sans-serif; text-align: center; background-color: #f0f2f5; margin: 0; padding: 20px; color: #333; display: flex; flex-direction: column; align-items: center; }
     h1 { color: #1a73e8; margin-bottom: 5px; font-size: 1.8em; margin-top: 10px; }
     h2 { font-size: 0.9em; color: #666; margin-top: 0; margin-bottom: 20px; font-weight: normal; line-height: 1.4; padding: 0 10px; }
     
-    .card { 
-      background: white; 
-      padding: 25px; 
-      border-radius: 15px; 
-      box-shadow: 0px 4px 20px rgba(0,0,0,0.08); 
-      text-align: left; 
-      width: 100%;
-      max-width: 350px; 
-      box-sizing: border-box;
-      margin-bottom: 20px;
-    }
+    /* Bannière d'erreur si l'API bloque */
+    #error-banner { display: none; background-color: #ffebee; color: #c62828; padding: 12px; border-radius: 8px; margin-bottom: 15px; width: 100%; max-width: 350px; font-size: 0.9em; font-weight: bold; border: 1px solid #ef9a9a; box-sizing: border-box; }
     
-    p { 
-      margin: 15px 0; 
-      font-size: 1.1em; 
-      display: flex;
-      justify-content: space-between; 
-      align-items: center;
-    }
-    
+    .card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0px 4px 20px rgba(0,0,0,0.08); text-align: left; width: 100%; max-width: 350px; box-sizing: border-box; margin-bottom: 20px; }
+    p { margin: 15px 0; font-size: 1.1em; display: flex; justify-content: space-between; align-items: center; }
     hr { border: 0; height: 1px; background: #eee; margin: 15px 0; }
-    
-    .time { 
-      font-size: 0.8em; 
-      color: #999; 
-      text-align: center; 
-      margin-top: 15px; 
-      word-break: break-word; 
-    }
-    
-    .valeur { 
-      font-weight: bold; 
-      color: #111; 
-      font-family: monospace; 
-      font-size: 1.1em;
-    }
-
-    .status-alimentation {
-      font-weight: bold;
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-size: 0.9em;
-    }
+    .time { font-size: 0.8em; color: #999; text-align: center; margin-top: 15px; word-break: break-word; }
+    .valeur { font-weight: bold; color: #111; font-family: monospace; font-size: 1.1em; }
+    .status-alimentation { font-weight: bold; padding: 4px 10px; border-radius: 20px; font-size: 0.9em; }
     .secteur-on { background-color: #e3f2fd; color: #0d47a1; }
     .bat-on { background-color: #e8f5e9; color: #1b5e20; }
-
-    #map-container {
-      background: white;
-      padding: 15px;
-      border-radius: 15px;
-      box-shadow: 0px 4px 20px rgba(0,0,0,0.08);
-      width: 100%;
-      max-width: 350px;
-      box-sizing: border-box;
-      text-align: left;
-    }
+    #map-container { background: white; padding: 15px; border-radius: 15px; box-shadow: 0px 4px 20px rgba(0,0,0,0.08); width: 100%; max-width: 350px; box-sizing: border-box; text-align: left; }
     #map-container h3 { margin: 0 0 10px 0; font-size: 1em; color: #1a73e8; }
     #map { height: 180px; width: 100%; border-radius: 10px; }
     .geo-txt { font-size: 0.85em; color: #555; margin-top: 10px; font-family: monospace; line-height: 1.4; }
@@ -108,30 +52,58 @@
             document.getElementById('ville').innerText = geo.city + " (" + geo.countryCode + ")";
             document.getElementById('lat').innerText = geo.lat.toFixed(4);
             document.getElementById('lon').innerText = geo.lon.toFixed(4);
-            
             const pos = [geo.lat, geo.lon];
             map.setView(pos, 12);
             marker.setLatLng(pos);
             marker.setPopupContent("<b>MétéoBriq'</b><br>Lieu : " + geo.city).openPopup();
           }
         }
-      } catch (e) { console.error(e); }
+      } catch (e) { console.error("Erreur géo:", e); }
     }
 
+    // Fonction intelligente de décodage des formats de l'API
     async function recupererCapteur(nom) {
       try {
         const response = await fetch(baseUrl + nom);
         if (!response.ok) return null;
-        return await response.json();
-      } catch (e) { return null; }
+        
+        const data = await response.json();
+        let valeurExtraite = null;
+        let tempsExtrait = null;
+
+        // 1. Si c'est un tableau [ ... ]
+        if (Array.isArray(data) && data.length > 0) {
+          const item = data[0];
+          valeurExtraite = item.value !== undefined ? item.value : (item.data !== undefined ? item.data : item);
+          tempsExtrait = item.updated_at || null;
+        } 
+        // 2. Si c'est un objet standard { ... }
+        else if (data && typeof data === 'object') {
+          valeurExtraite = data.value !== undefined ? data.value : (data.data !== undefined ? data.data : null);
+          tempsExtrait = data.updated_at || null;
+        } 
+        // 3. Si c'est une valeur brute (nombre ou texte)
+        else if (data !== null) {
+          valeurExtraite = data;
+        }
+
+        return { value: parseFloat(valeurExtraite), updated_at: tempsExtrait };
+      } catch (e) { 
+        // Si ça plante ici, c'est un problème de CORS à 99%
+        document.getElementById('error-banner').style.display = 'block';
+        document.getElementById('error-banner').innerHTML = "⚠️ Erreur de connexion à l'API (Probablement un blocage CORS. Demande à ton pote d'activer CORS sur son API !)";
+        return null; 
+      }
     }
 
     async function chargerToutesLesDonnees() {
       let derniereMaj = "";
+      let succesAuMoinsUn = false;
 
       for (const capteur of capteurs) {
         const data = await recupererCapteur(capteur);
-        if (data && data.value !== undefined) {
+        if (data && !isNaN(data.value)) {
+          succesAuMoinsUn = true;
           if (data.updated_at) derniereMaj = data.updated_at;
 
           if (capteur === 'temps') document.getElementById('temp').innerText = data.value.toFixed(1) + " °C";
@@ -153,9 +125,15 @@
         }
       }
 
-      if (derniereMaj) {
-        const date = new Date(derniereMaj);
-        document.getElementById('time').innerText = "Dernière mise à jour : " + date.toLocaleTimeString('fr-FR');
+      if (succesAuMoinsUn) {
+        // Si au moins un capteur répond, on cache la bannière d'erreur
+        document.getElementById('error-banner').style.display = 'none';
+        if (derniereMaj) {
+          const date = new Date(derniereMaj);
+          document.getElementById('time').innerText = "Dernière mise à jour : " + date.toLocaleTimeString('fr-FR');
+        } else {
+          document.getElementById('time').innerText = "Données synchronisées en direct";
+        }
       }
     }
 
@@ -172,6 +150,8 @@
 
   <h1>🌍 Météo Briqu</h1>
   <h2>Noa Meyer, Luca Sforza, Victor Lefèvre, George Martinez</h2>
+
+  <div id="error-banner"></div>
 
   <div class="card">
     <p><span>⚡ Source :</span> <span id="pwr-status" class="status-alimentation secteur-on">Analyse...</span></p>
